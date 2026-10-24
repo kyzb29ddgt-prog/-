@@ -1,1 +1,131 @@
-<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>선덕고 부수기</title><style>body{margin:0;background:#b9ddf7;font-family:system-ui;overflow:hidden}#ui{position:fixed;top:12px;left:12px;background:#ffffffdd;padding:12px;border-radius:12px}#tools{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:5px}button{border:0;border-radius:9px;padding:11px;background:white;font-weight:bold}button.sel{background:#ffcc58}#tip{position:fixed;top:12px;right:12px;background:#ffffffcc;padding:8px;border-radius:9px;font-size:12px}</style><div id="ui"><b>🏫 선덕고 부수기</b><div id="score">파괴: 0%</div><button id="reset">다시 만들기</button></div><div id="tip">드래그: 회전 · 두 손가락: 확대<br>건물 터치: 도구 사용</div><div id="tools"></div><script type="module">import * as T from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';const scene=new T.Scene();scene.background=new T.Color(0xb9ddf7);const camera=new T.PerspectiveCamera(55,innerWidth/innerHeight,.1,500);const renderer=new T.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));document.body.appendChild(renderer.domElement);scene.add(new T.HemisphereLight(0xffffff,0x65768a,2.2));const sun=new T.DirectionalLight(0xffffff,2);sun.position.set(20,35,15);scene.add(sun);const ground=new T.Mesh(new T.PlaneGeometry(140,140),new T.MeshLambertMaterial({color:0x80b778}));ground.rotation.x=-Math.PI/2;scene.add(ground);let blocks=[],parts=[],total=0,tool=0,az=.65,el=.45,dist=43;const names=['💣 작은 폭탄','🌎 지진','☄️ 운석','⚡ 번개','🌪️ 토네이도'];names.forEach((n,i)=>{let b=document.createElement('button');b.textContent=n;b.onclick=()=>{tool=i;document.querySelectorAll('#tools button').forEach((x,j)=>x.classList.toggle('sel',i===j))};document.querySelector('#tools').appendChild(b)});document.querySelector('#tools button').classList.add('sel');const mat=[0xd8d1c3,0xc9c1b4,0x98b7d1];function build(){blocks.forEach(b=>scene.remove(b));parts.forEach(p=>scene.remove(p.m));blocks=[];parts=[];for(let y=0;y<7;y++)for(let x=0;x<16;x++)for(let z=0;z<5;z++){if(y%3!==0&&z>0&&z<4&&x>0&&x<15)continue;let m=new T.Mesh(new T.BoxGeometry(1.3,1.3,1.3),new T.MeshLambertMaterial({color:mat[y%3===1?2:(x+y+z)%2]}));m.position.set((x-7.5)*1.32,y*1.32+.67,(z-2)*1.32);scene.add(m);blocks.push(m)}total=blocks.length;update()}function update(){document.querySelector('#score').textContent='파괴: '+Math.round((1-blocks.length/total)*100)+'%'}document.querySelector('#reset').onclick=build;build();const ray=new T.Raycaster(),pointer=new T.Vector2();let down=null;renderer.domElement.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY,az,el};renderer.domElement.setPointerCapture(e.pointerId)});renderer.domElement.addEventListener('pointermove',e=>{if(!down)return;az=down.az+(down.x-e.clientX)*.008;el=Math.max(.12,Math.min(1.35,down.el+(e.clientY-down.y)*.008))});renderer.domElement.addEventListener('pointerup',e=>{if(!down)return;let moved=Math.hypot(e.clientX-down.x,e.clientY-down.y);down=null;if(moved>12)return;pointer.set(e.clientX/innerWidth*2-1,-e.clientY/innerHeight*2+1);ray.setFromCamera(pointer,camera);let hits=ray.intersectObjects(blocks);if(!hits.length)return;let center=hits[0].object.position.clone();let radius=[3.4,99,6,3.8,7][tool];for(let i=blocks.length-1;i>=0;i--){let b=blocks[i],d=b.position.distanceTo(center);let remove=tool===1?(b.position.y<3.4&&Math.random()<.55):d<radius&&(Math.random()<([.94,1,.78,.82,.72][tool]));if(remove){blocks.splice(i,1);let dir=b.position.clone().sub(center).normalize();parts.push({m:b,v:new T.Vector3(dir.x*(.12+Math.random()*.3),.18+Math.random()*.32,dir.z*(.12+Math.random()*.3)),life:110});}}update()});renderer.domElement.addEventListener('wheel',e=>{dist=Math.max(18,Math.min(90,dist+e.deltaY*.035))},{passive:true});let pinch=0;renderer.domElement.addEventListener('touchmove',e=>{if(e.touches.length===2){let d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(pinch)dist=Math.max(18,Math.min(90,dist+(pinch-d)*.07));pinch=d}else pinch=0},{passive:true});function frame(){requestAnimationFrame(frame);camera.position.set(Math.sin(az)*Math.cos(el)*dist,Math.sin(el)*dist+4,Math.cos(az)*Math.cos(el)*dist);camera.lookAt(0,4,0);for(let i=parts.length-1;i>=0;i--){let p=parts[i];p.v.y-=.018;p.m.position.add(p.v);p.m.rotation.x+=.045;p.m.rotation.z+=.025;if(p.m.position.y<.65){p.m.position.y=.65;p.v.y*=-.35;p.v.x*=.86;p.v.z*=.86}if(--p.life<=0){scene.remove(p.m);parts.splice(i,1)}}renderer.render(scene,camera)}frame();addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)})</script></html>
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>선덕고 부수기</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#b9ddf7;font-family:system-ui,-apple-system,sans-serif;overflow:hidden;touch-action:none}
+#ui{position:fixed;top:10px;left:10px;background:#ffffffdf;padding:11px 12px;border-radius:13px;box-shadow:0 3px 14px #0002;z-index:2}#score{margin:4px 0 8px;font-weight:700}
+#tools{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:6px;max-width:96vw;overflow-x:auto;padding:4px;z-index:2}
+button{border:0;border-radius:10px;padding:11px 12px;background:white;font-weight:750;white-space:nowrap;box-shadow:0 2px 7px #0002}button.sel{background:#ffcc58;outline:2px solid #8e6412}
+#tip{position:fixed;top:10px;right:10px;background:#ffffffdf;padding:8px 10px;border-radius:10px;font-size:12px;line-height:1.5;text-align:right;z-index:2}
+@media(max-width:600px){#tip{top:auto;bottom:76px;right:10px;font-size:10px}#ui{font-size:13px}button{padding:10px 9px;font-size:12px}}
+</style>
+</head>
+<body>
+<div id="ui"><b>🏫 선덕고 부수기</b><div id="score">파괴: 0%</div><button id="reset">다시 만들기</button></div>
+<div id="tip">드래그: 회전 · 두 손가락: 확대<br>건물 터치: 도구 사용</div><div id="tools"></div>
+<script type="module">
+import * as T from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
+const scene=new T.Scene();scene.background=new T.Color(0xb9ddf7);
+const camera=new T.PerspectiveCamera(55,innerWidth/innerHeight,.1,500);
+const renderer=new T.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;document.body.appendChild(renderer.domElement);
+scene.add(new T.HemisphereLight(0xffffff,0x65768a,2.1));const sun=new T.DirectionalLight(0xffffff,2.5);sun.position.set(20,35,15);sun.castShadow=true;scene.add(sun);
+const ground=new T.Mesh(new T.PlaneGeometry(140,140),new T.MeshLambertMaterial({color:0x80b778}));ground.rotation.x=-Math.PI/2;ground.position.y=-.03;ground.receiveShadow=true;scene.add(ground);
+let blocks=[],parts=[],effects=[],projectiles=[],total=0,tool=0,az=.65,el=.45,dist=43,shake=0;
+const names=['💣 작은 폭탄','🌎 지진','☄️ 운석','⚡ 번개','🌪️ 토네이도'];
+names.forEach((n,i)=>{const b=document.createElement('button');b.textContent=n;b.onclick=()=>{tool=i;document.querySelectorAll('#tools button').forEach((x,j)=>x.classList.toggle('sel',i===j))};document.querySelector('#tools').appendChild(b)});
+document.querySelector('#tools button').classList.add('sel');
+const matColors=[0xd8d1c3,0xc9c1b4,0x98b7d1,0xe1d8c7];
+function build(){
+  blocks.forEach(b=>scene.remove(b));parts.forEach(p=>scene.remove(p.m));effects.forEach(e=>scene.remove(e.m));projectiles.forEach(p=>scene.remove(p.m));
+  blocks=[];parts=[];effects=[];projectiles=[];
+  // Main school building: rectangular masonry blocks, windows and roof details.
+  for(let y=0;y<7;y++)for(let x=0;x<16;x++)for(let z=0;z<5;z++){
+    if(y%3!==0&&z>0&&z<4&&x>0&&x<15)continue;
+    const color=matColors[y%3===1?2:(x+y+z)%2];
+    const m=new T.Mesh(new T.BoxGeometry(1.3,1.3,1.3),new T.MeshLambertMaterial({color}));
+    m.position.set((x-7.5)*1.32,y*1.32+.67,(z-2)*1.32);m.castShadow=true;m.receiveShadow=true;scene.add(m);blocks.push(m);
+  }
+  // School entrance sign
+  const sign=new T.Mesh(new T.BoxGeometry(4.1,.72,.18),new T.MeshLambertMaterial({color:0x234f73}));
+  sign.position.set(0,2.05,3.6);scene.add(sign);blocks.push(sign);
+  // Small rooftop blocks give the silhouette a little variety.
+  for(let x=-2;x<=2;x++){const m=new T.Mesh(new T.BoxGeometry(1.05,.38,.8),new T.MeshLambertMaterial({color:0x777e88}));m.position.set(x*1.35,9.55,0);m.castShadow=true;scene.add(m);blocks.push(m)}
+  total=blocks.length;update();
+}
+function update(){document.querySelector('#score').textContent='파괴: '+Math.round((1-blocks.length/total)*100)+'%'}
+document.querySelector('#reset').onclick=build;build();
+const ray=new T.Raycaster(),pointer=new T.Vector2();let down=null;
+renderer.domElement.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY,az,el};renderer.domElement.setPointerCapture(e.pointerId)});
+renderer.domElement.addEventListener('pointermove',e=>{if(!down)return;az=down.az+(down.x-e.clientX)*.008;el=Math.max(.12,Math.min(1.35,down.el+(e.clientY-down.y)*.008))});
+renderer.domElement.addEventListener('pointerup',e=>{
+ if(!down)return;const moved=Math.hypot(e.clientX-down.x,e.clientY-down.y);down=null;if(moved>12)return;
+ pointer.set(e.clientX/innerWidth*2-1,-e.clientY/innerHeight*2+1);ray.setFromCamera(pointer,camera);const hits=ray.intersectObjects(blocks);if(!hits.length)return;
+ const target=hits[0].point.clone();
+ if(tool===0){launchBomb(target);return}
+ if(tool===2){launchMeteor(target);return}
+ impact(target,tool);
+});
+renderer.domElement.addEventListener('wheel',e=>{dist=Math.max(18,Math.min(90,dist+e.deltaY*.035))},{passive:true});
+let pinch=0;renderer.domElement.addEventListener('touchmove',e=>{if(e.touches.length===2){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(pinch)dist=Math.max(18,Math.min(90,dist+(pinch-d)*.07));pinch=d}else pinch=0},{passive:true});
+function makeBurst(pos,color=0xffa22b,max=5){
+ const m=new T.Mesh(new T.TorusGeometry(.55,.09,8,32),new T.MeshBasicMaterial({color,transparent:true,opacity:.95}));
+ m.rotation.x=Math.PI/2;m.position.copy(pos);scene.add(m);effects.push({m,life:24,max,kind:'ring'});
+}
+function launchBomb(target){
+ const geo=new T.SphereGeometry(.36,16,12),m=new T.Mesh(geo,new T.MeshStandardMaterial({color:0x252525,roughness:.65,metalness:.25}));
+ m.position.set(camera.position.x*.58,Math.max(12,camera.position.y*.7),camera.position.z*.58);scene.add(m);
+ const fuse=new T.Mesh(new T.SphereGeometry(.12,8,8),new T.MeshBasicMaterial({color:0xff6b18}));fuse.position.set(.18,.24,0);m.add(fuse);
+ projectiles.push({m,start:m.position.clone(),target:target.clone(),t:0,duration:34,kind:'bomb'});
+}
+function launchMeteor(target){
+ const m=new T.Mesh(new T.DodecahedronGeometry(.8,1),new T.MeshStandardMaterial({color:0x62544b,emissive:0x6d2107,emissiveIntensity:.7,roughness:1}));
+ m.position.set(target.x+5,Math.max(19,target.y+16),target.z+6);scene.add(m);
+ const tail=new T.Mesh(new T.ConeGeometry(.45,2.8,10),new T.MeshBasicMaterial({color:0xff6a16,transparent:true,opacity:.72}));tail.position.y=1.65;tail.rotation.z=Math.PI; m.add(tail);
+ projectiles.push({m,start:m.position.clone(),target:target.clone(),t:0,duration:24,kind:'meteor'});
+}
+function impact(center,kind){
+ const radius=[3.4,99,6,3.8,7][kind];
+ if(kind===1){shake=22;makeBurst(center,0xb4c4d2,8)}
+ if(kind===3){makeBurst(center,0x9cf5ff,5);const bolt=new T.Mesh(new T.CylinderGeometry(.06,.1,Math.max(3,center.y+3),6),new T.MeshBasicMaterial({color:0xe6ffff}));bolt.position.set(center.x,center.y+Math.max(3,center.y+3)/2,center.z);scene.add(bolt);effects.push({m:bolt,life:8,max:1,kind:'flash'})}
+ if(kind===4){shake=8;makeBurst(center,0x9bd9ff,7)}
+ for(let i=blocks.length-1;i>=0;i--){
+  const b=blocks[i],d=b.position.distanceTo(center);
+  let remove=kind===1?(b.position.y<4.5&&Math.random()<.63):kind===4?(d<radius&&Math.random()<.85):(d<radius&&Math.random()<.88);
+  if(remove)breakBlock(i,center,kind===1?1.5:kind===4?1.2:1);
+ }
+ update();
+}
+function breakBlock(i,center,power=1){
+ const b=blocks[i];blocks.splice(i,1);const pos=b.position.clone(),color=b.material.color.getHex();scene.remove(b);
+ // Break every block into irregular tetrahedral shards with different sizes and spins.
+ const count=2+Math.floor(Math.random()*4);
+ for(let j=0;j<count;j++){
+  const size=.22+Math.random()*.48;
+  const geo=new T.TetrahedronGeometry(size,0);
+  const m=new T.Mesh(geo,new T.MeshLambertMaterial({color:new T.Color(color).offsetHSL((Math.random()-.5)*.035,0, (Math.random()-.5)*.12)}));
+  m.position.copy(pos).add(new T.Vector3((Math.random()-.5)*.75,(Math.random()-.5)*.75,(Math.random()-.5)*.75));
+  m.rotation.set(Math.random()*6,Math.random()*6,Math.random()*6);m.castShadow=true;scene.add(m);
+  const dir=m.position.clone().sub(center);if(dir.lengthSq()<.1)dir.set(Math.random()-.5,.4,Math.random()-.5);dir.normalize();
+  parts.push({m,v:new T.Vector3(dir.x*(.13+Math.random()*.38)*power,.22+Math.random()*.4+power*.12,dir.z*(.13+Math.random()*.38)*power),spin:new T.Vector3(Math.random()*.18,Math.random()*.18,Math.random()*.18),life:95+Math.random()*55});
+ }
+}
+function explode(target,kind){
+ makeBurst(target,kind===2?0xff6c25:0xffb42a,kind===2?8:6);shake=kind===2?25:15;
+ const radius=kind===2?6.4:4.4;
+ for(let i=blocks.length-1;i>=0;i--){const b=blocks[i];if(b.position.distanceTo(target)<radius&&Math.random()<(kind===2?.96:.93))breakBlock(i,target,kind===2?1.7:1.45)}
+ update();
+}
+function frame(){
+ requestAnimationFrame(frame);
+ if(shake>0)shake--;
+ camera.position.set(Math.sin(az)*Math.cos(el)*dist+(shake?((Math.random()-.5)*shake*.025):0),Math.sin(el)*dist+4+(shake?((Math.random()-.5)*shake*.025):0),Math.cos(az)*Math.cos(el)*dist);camera.lookAt(0,4,0);
+ for(let i=projectiles.length-1;i>=0;i--){
+  const p=projectiles[i];p.t++;const t=Math.min(1,p.t/p.duration);
+  p.m.position.lerpVectors(p.start,p.target,t);p.m.position.y+=Math.sin(t*Math.PI)*(p.kind==='bomb'?7:4);
+  p.m.rotation.x+=.16;p.m.rotation.z+=.12;
+  if(t>=1){scene.remove(p.m);projectiles.splice(i,1);explode(p.target,p.kind==='meteor'?2:0)}
+ }
+ for(let i=parts.length-1;i>=0;i--){
+  const p=parts[i];p.v.y-=.018;p.m.position.add(p.v);p.m.rotation.x+=p.spin.x;p.m.rotation.y+=p.spin.y;p.m.rotation.z+=p.spin.z;
+  if(p.m.position.y<.22){p.m.position.y=.22;p.v.y*=-.3;p.v.x*=.78;p.v.z*=.78}
+  if(--p.life<=0){scene.remove(p.m);parts.splice(i,1)}
+ }
+ for(let i=effects.length-1;i>=0;i--){const e=effects[i];e.life--;if(e.kind==='ring'){const s=1+(24-e.life)*.22;e.m.scale.setScalar(s);e.m.material.opacity=Math.max(0,e.life/24)}else if(e.kind==='flash'){e.m.material.opacity=Math.max(0,e.life/8)}if(e.life<=0){scene.remove(e.m);effects.splice(i,1)}}
+ renderer.render(scene,camera);
+}
+frame();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+</script></body></html>
